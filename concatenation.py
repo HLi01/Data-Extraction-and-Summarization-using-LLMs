@@ -8,9 +8,9 @@ output_file = os.path.join(result_folder, "all_results_concatenated.csv")
 csv_files = [os.path.join(result_folder, f) for f in os.listdir(result_folder) if f.endswith("_filtered.csv")]
 
 if not csv_files:
-    print("❌ No filtered CSV files found in the Result folder.")
+    print("No filtered CSV files found in the Result folder.")
 else:
-    print(f"🔍 Found {len(csv_files)} CSV files. Concatenating...")
+    print(f"Found {len(csv_files)} CSV files. Concatenating...")
 
     # Load all CSVs into DataFrames
     dfs = []
@@ -18,9 +18,9 @@ else:
         try:
             df = pd.read_csv(file)
             dfs.append(df)
-            print(f"✅ Loaded {os.path.basename(file)} ({len(df)} rows)")
+            print(f"Loaded {os.path.basename(file)} ({len(df)} rows)")
         except Exception as e:
-            print(f"⚠️ Error reading {file}: {e}")
+            print(f"Error reading {file}: {e}")
 
     # Concatenate them into one DataFrame
     if dfs:
@@ -32,9 +32,6 @@ else:
             if col not in combined_df.columns:
                 combined_df[col] = ""
         combined_df = combined_df[expected_columns]
-
-        # Drop duplicates (optional)
-        combined_df.drop_duplicates(subset=["PubMedID", "Matched_Chemicals"], inplace=True)
 
         # Save combined file
         combined_df.to_csv(output_file, index=False)
