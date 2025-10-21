@@ -60,7 +60,6 @@ for protein, (_, ui) in protein_mesh_mapping.items():
     ui_to_proteins.setdefault(ui, []).append(protein)
 
 
-# 2. File processing
 def process_file(file_path):
     matches = []
     filename = os.path.basename(file_path)
@@ -88,16 +87,20 @@ def process_file(file_path):
                     if ui:
                         chemicals.append((text, ui))
 
-                matched = []
+                matched_proteins = []
+                matched_uis = []
+
                 for text, ui in chemicals:
                     if ui in ui_to_proteins:
                         if ui == "D020381":  # special case for IL17 family
                             if text in ["Interleukin-17A", "Interleukin-17F", "Interleukin-17C"]:
-                                matched.append(text)
+                                matched_proteins.append(text)
+                                matched_uis.append(ui)
                         else:
-                            matched.extend(ui_to_proteins[ui])
+                            matched_proteins.extend(ui_to_proteins[ui])
+                            matched_uis.append(ui)
 
-                if not matched:
+                if not matched_proteins:
                     continue
 
                 abstract_texts = [
@@ -113,7 +116,8 @@ def process_file(file_path):
 
                 matches.append({
                     "PubMedID": pubmed_id,
-                    "Matched_Chemicals": "; ".join(matched),
+                    "Matched_Chemicals": "; ".join(matched_proteins),
+                    "Matched_UI": "; ".join(matched_uis),
                     "Abstract": abstract
                 })
 
@@ -133,7 +137,6 @@ def process_file(file_path):
     return 0
 
 
-# 3. Parallel execution
 if __name__ == "__main__":
     multiprocessing.freeze_support()
 

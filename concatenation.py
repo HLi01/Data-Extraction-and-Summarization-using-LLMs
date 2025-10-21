@@ -27,7 +27,7 @@ else:
         combined_df = pd.concat(dfs, ignore_index=True)
 
         # Reorder columns
-        expected_columns = ["PubMedID", "Matched_Chemicals", "Abstract"]
+        expected_columns = ["PubMedID", "Matched_Chemicals", "Matched_UI", "Abstract"]
         for col in expected_columns:
             if col not in combined_df.columns:
                 combined_df[col] = ""
