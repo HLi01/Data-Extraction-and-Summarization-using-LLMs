@@ -1,24 +1,27 @@
-import pandas as pd
+import polars as pl
 import os
 
-input_path = "Result/all_results_concatenated.csv"
-output_path = "Result/all_results_cleaned.csv"
+input_path = "Result-v3/all_results_concatenated.csv"
+output_path = "Result-v3/all_results_cleaned.csv"
 
-df = pd.read_csv(input_path)
+os.makedirs("Result-v3", exist_ok=True)
 
-# Ensure Abstract exists and clean whitespace
+# Lazy read CSV
+df = pl.scan_csv(input_path)
+
+# Ensure Abstract exists
 if "Abstract" not in df.columns:
-    df["Abstract"] = ""
-df["Abstract"] = df["Abstract"].astype(str).str.strip()
+    df = df.with_columns(pl.lit("").alias("Abstract"))
 
-# Remove rows with "This article has been retracted" in the Abstract
-df = df[~df["Abstract"].str.contains("This article has been retracted", case=False, na=False)]
-print(f"Original rows: {len(df)}")
+# Lazy cleaning pipeline
+df = (
+    df
+    .with_columns(pl.col("Abstract").str.strip_chars().alias("Abstract"))  # Clean whitespace
+    .filter(~pl.col("Abstract").str.contains("This article has been retracted", literal=True))  # Remove retracted
+    .filter(pl.col("Abstract").str.len_chars() > 70)  # Remove very short abstracts
+)
 
-# Remove rows with very short abstracts
-df = df[df["Abstract"].str.len() > 70]
-print(f"Rows after cleaning: {len(df)}")
+# Write lazily to CSV without collecting
+df.sink_csv(output_path)
 
-os.makedirs("Result", exist_ok=True)
-df.to_csv(output_path, index=False)
 print(f"Cleaned CSV saved to: {output_path}")
