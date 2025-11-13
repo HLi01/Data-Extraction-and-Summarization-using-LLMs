@@ -15,15 +15,27 @@ df = df.with_columns([
 ])
 
 # Replace empty strings or "NA" / "None" with nulls
+invalid_values = ["", "na", "n/a", "none", "null"]
+
+# Count rows that contain *any* of those invalid values before cleaning
+affected_rows = df.filter(
+    pl.any_horizontal(
+        [
+            pl.col(col).str.to_lowercase().is_in(invalid_values)
+            for col in df.columns
+            if df[col].dtype == pl.Utf8
+        ]
+    )
+).height
+
+print(f"Rows affected by invalid string cleanup: {affected_rows}")
 df = df.with_columns([
-    pl.when(pl.col(col).str.to_lowercase().is_in(["", "NA", "N/A", "None", "null"]))
+    pl.when(pl.col(col).str.to_lowercase().is_in(invalid_values))
     .then(None)
     .otherwise(pl.col(col))
     .alias(col)
     for col in df.columns if df[col].dtype == pl.Utf8
 ])
-
-print(f"Number of empty strings: {original_length-df.height}")
 
 # Drop rows where essential columns are missing
 essential_cols = ["PubMedID", "Relevant_Sentences"]
@@ -35,6 +47,22 @@ df = df.with_columns(
     .str.replace_all(r"\s*\|\|\s*", " || ")  # ensure consistent separator
     .str.replace_all(r"\s{2,}", " ")         # collapse extra spaces
     .str.strip_chars()                       # trim edges
+    .alias("Relevant_Sentences")
+)
+
+# Remove all variants of "(ABSTRACT TRUNCATED...)"
+affected_rows = df.filter(
+    pl.col("Relevant_Sentences").str.contains(r"\(ABSTRACT TRUNCATED(?: AT \d+ WORDS)?\)")
+).height
+print(f"Rows affected by cleanup (truncated abstracts): {affected_rows}")
+
+substring = "(ABSTRACT TRUNCATED AT "
+df = df.with_columns(
+    pl.col("Relevant_Sentences")
+    .str.replace_all(r"\(ABSTRACT TRUNCATED(?: AT \d+ WORDS)?\)", "")
+    # Clean up leftover extra spaces
+    .str.replace_all(r"\s{2,}", " ")
+    .str.strip_chars()
     .alias("Relevant_Sentences")
 )
 
